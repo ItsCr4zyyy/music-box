@@ -9,6 +9,14 @@ needed. People who want to add songs sign up, and an admin turns them into DJs.
 - **Sources** – YouTube / YouTube Music, Spotify links, your own music files, internet radio.
 - **Runs on** Windows and Linux (with or without a screen).
 
+![The display](docs/screenshots/display-hravy.jpg)
+
+| Queue | Add a song | Library | Admin – display layout |
+|:---:|:---:|:---:|:---:|
+| ![Queue](docs/screenshots/web-queue.jpg) | ![Add a song](docs/screenshots/web-add.jpg) | ![Album](docs/screenshots/web-album.jpg) | ![Admin – display](docs/screenshots/web-admin-display.jpg) |
+
+More: [themes](#themes) · [radio](#radio) · [theme picker](docs/screenshots/web-admin-themes.jpg)
+
 ## Install
 
 The easiest way is a ready-made installer from **[Releases](https://github.com/ItsCr4zyyy/music-box/releases)** –
@@ -72,6 +80,8 @@ stops, and it comes back after the queue is finished. Stations are found in the 
 AAC over **Icecast / SHOUTcast** – the artist and title of the current song are read from the stream
 and the cover is looked up on Deezer.
 
+![Radio on the display](docs/screenshots/display-radio.jpg)
+
 ## The display
 
 Everything is set from the web in **Admin → Display** and applied immediately: the corner and size of
@@ -86,14 +96,36 @@ PipeWire / PulseAudio). The change applies right away and the song continues whe
 
 **Admin → Look** – a theme applies to both the web and the display. Built-in themes:
 
-- **Hravý (Playful)** – purple night, candy colours, round shapes.
-  Effects: flying notes (animated), wiggling logo (animated).
-- **Devadesátky (Nineties)** – freedom after 1989: paper, poster headings, typewriter, square cards.
-  Effects: jingling keys (animated), tricolour on top (static), heart after the name (static).
-- **Ostrý (Sharp)** – clean and simple: off-white, black lines, lime, heavy headings, typewriter labels.
-  Effects: pulsing dot (animated), ticker at the bottom (animated), grid lines (static).
+### Hravý (Playful) – default
+
+Purple night, candy colours, round shapes.
+Effects: flying notes (animated), wiggling logo (animated).
+**Download:** [`hravy.json`](core/assets/themes/hravy.json)
+
+![Hravý theme](docs/screenshots/display-hravy.jpg)
+
+### Devadesátky (Nineties)
+
+Freedom after 1989: paper, poster headings, typewriter, square cards, no UI animations.
+Effects: jingling keys (animated), tricolour on top (static), heart after the name (static).
+**Download:** [`devadesatky.json`](core/assets/themes/devadesatky.json)
+
+![Devadesátky theme](docs/screenshots/display-devadesatky.jpg)
+
+### Ostrý (Sharp)
+
+Clean and simple: off-white, thin black lines, lime, heavy headings, typewriter labels, a square cover
+instead of the record.
+Effects: pulsing dot (animated), ticker at the bottom (animated), grid lines (static).
+**Download:** [`ostry.json`](core/assets/themes/ostry.json)
+
+![Ostrý theme](docs/screenshots/display-ostry.jpg)
 
 Each effect of the current theme can be switched on and off in **Admin → Display → Special effects**.
+
+The `.json` files above are complete themes – open one and use **Download raw file** on GitHub, edit it
+and upload it in **Admin → Look → Upload theme**. (Built-in themes are already included in the app;
+uploading an edited copy adds it as a new theme.)
 
 **Your own theme:** download any theme as a template, edit `theme.json` and upload it back. For your own
 fonts upload a ZIP (`theme.json` + `.woff2` / `.ttf` files). A theme with the same name is replaced.

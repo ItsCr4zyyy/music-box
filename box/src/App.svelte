@@ -4,6 +4,7 @@
 	import { fmtTime, logoUrl, nameColor, type Corner, type DisplaySettings, type Track } from './lib/types';
 	import Cover from './lib/Cover.svelte';
 	import Notes from './lib/Notes.svelte';
+	import { fitText } from './lib/fit';
 	import Avatar from './lib/Avatar.svelte';
 	import Keys from './lib/Keys.svelte';
 	import Ticker from './lib/Ticker.svelte';
@@ -170,7 +171,7 @@
 							{tt('playing')}
 						{/if}
 					</div>
-					<h1 class="line-clamp-2 font-display text-[4.2em] leading-[1.05] font-bold">{np.entry.track.title}</h1>
+					<h1 class="line-clamp-2 font-display leading-[1.05] font-bold" use:fitText={np.entry.track.title}>{np.entry.track.title}</h1>
 					<div class="mt-[0.3em] truncate text-[2em] text-white/70">{np.entry.track.artist}</div>
 
 					{#if d.show_added_by}
@@ -209,7 +210,7 @@
 							<Radio class="size-[1.1em]" strokeWidth={2.5} /> {tt('radioOnAir')}
 						{/if}
 					</div>
-					<h1 class="line-clamp-2 font-display text-[4.2em] leading-[1.05] font-bold">{radio.title ?? radio.station}</h1>
+					<h1 class="line-clamp-2 font-display leading-[1.05] font-bold" use:fitText={radio.title ?? radio.station}>{radio.title ?? radio.station}</h1>
 					{#if radio.artist}<div class="mt-[0.3em] truncate text-[2em] text-white/70">{radio.artist}</div>{/if}
 					<div class="mt-[1.2em] inline-flex items-center gap-[0.6em] rounded-full bg-white/10 py-[0.4em] pr-[1.2em] pl-[0.4em] text-[1.4em]">
 						{#if radio.station_logo}
