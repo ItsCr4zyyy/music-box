@@ -1,0 +1,47 @@
+{
+  "name": "Hravý",
+  "description": "Výchozí – fialová noc, bonbónové barvy, kulaté tvary a poletující noty.",
+  "description_en": "Default – purple night, candy colours, round shapes and flying notes.",
+  "author": "music-box",
+  "colors": {
+    "background": "#1b1036",
+    "surface": "#251648",
+    "surface_2": "#33205e",
+    "surface_3": "#43307a",
+    "text": "#ffffff",
+    "primary": "#ff5fa2",
+    "secondary": "#ffd23f",
+    "success": "#5ce1b9",
+    "info": "#6ec8ff",
+    "extra": "#b69cff",
+    "on_accent": "#1b1036"
+  },
+  "fonts": {
+    "heading": "Baloo 2 Variable",
+    "body": "Nunito Variable"
+  },
+  "font_files": [],
+  "radius": 1.0,
+  "shadow": "chunky",
+  "pattern": "dots",
+  "animations": true,
+  "css": "",
+  "effects": [
+    {
+      "id": "notes",
+      "name": "Poletující noty",
+      "animated": true,
+      "default": true,
+      "css": "",
+      "name_en": "Flying notes"
+    },
+    {
+      "id": "wiggle-logo",
+      "name": "Kývající se logo",
+      "animated": true,
+      "default": true,
+      "css": ".mb-logo-img { animation: mb-wiggle 3s ease-in-out infinite; }\n@keyframes mb-wiggle { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }",
+      "name_en": "Wiggling logo"
+    }
+  ]
+}

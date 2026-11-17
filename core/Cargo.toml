@@ -1,0 +1,38 @@
+[package]
+name = "musicbox-core"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ItsCr4zyyy/music-box"
+description = "music-box core: player, library, YouTube/Spotify/radio sources, HTTP + WebSocket API"
+
+[dependencies]
+anyhow = "1.0.104"
+argon2 = "0.6.0"
+axum = { version = "0.8.9", features = ["ws", "macros"] }
+axum-extra = { version = "0.12.6", features = ["cookie"] }
+dirs = "7.0.0"
+futures-util = "0.3.34"
+local-ip-address = "0.6.13"
+lofty = "0.25.5"
+once_cell = "1.21.4"
+qrcode = "0.14.1"
+regex = "1.13.1"
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls", "json", "stream", "query", "http2", "blocking"] }
+rodio = { version = "0.23.0", features = ["symphonia-all"] }
+rusqlite = { version = "0.43.0", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["full"] }
+tower-http = { version = "0.7.1", features = ["fs", "cors", "trace"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+urlencoding = "2.1.3"
+uuid = { version = "1.29.3", features = ["v4"] }
+walkdir = "2.5.0"
+zip = { version = "9.6.1", default-features = false, features = ["deflate"] }
+
+[[bin]]
+name = "musicbox-headless"
+path = "src/bin/headless.rs"

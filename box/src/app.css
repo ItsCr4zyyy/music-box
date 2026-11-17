@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/baloo-2';
+@import '@fontsource-variable/nunito';
+/* Fonty vestavěného motivu Devadesátky */
+@import '@fontsource/archivo-black/400.css';
+@import '@fontsource/courier-prime/400.css';
+@import '@fontsource/courier-prime/700.css';
+/* Fonty vestavěného motivu Ostrý */
+@import '@fontsource-variable/inter';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+@theme {
+	--font-display: 'Baloo 2 Variable', ui-rounded, system-ui, sans-serif;
+	--font-sans: 'Nunito Variable', ui-rounded, system-ui, sans-serif;
+	--color-ink: #1b1036;
+	--color-ink-2: #251648;
+	--color-ink-3: #33205e;
+	--color-on-accent: #1b1036;
+	--color-pink: #ff5fa2;
+	--color-sun: #ffd23f;
+	--color-mint: #5ce1b9;
+	--color-sky: #6ec8ff;
+	--color-lilac: #b69cff;
+}
+
+/* Výchozí hodnoty – motivy (/api/theme.css) je přepisují. */
+:root {
+	--mb-radius: 1;
+	--mb-shadow-card: 0 0.4em 0 0 rgb(0 0 0 / 0.25);
+	--mb-pattern: radial-gradient(rgb(255 255 255 / 0.05) 2px, transparent 2px);
+	--mb-pattern-size: 2.2em 2.2em;
+}
+
+html,
+body,
+#app {
+	height: 100%;
+	overflow: hidden;
+}
+
+body {
+	@apply bg-ink font-sans text-white antialiased select-none;
+	/* Vše se škáluje podle velikosti obrazovky. */
+	font-size: clamp(12px, 1.25vmin + 0.35vw, 30px);
+	background-image: var(--mb-pattern);
+	background-size: var(--mb-pattern-size);
+}
+
+/* Kurzor zmizí, když se myš chvíli nehýbe. */
+.hide-cursor,
+.hide-cursor * {
+	cursor: none !important;
+}
+
+@keyframes float-up {
+	0% { transform: translateY(0) rotate(0); opacity: 0; }
+	10% { opacity: 0.6; }
+	100% { transform: translateY(-110vh) rotate(40deg); opacity: 0; }
+}
+
+@keyframes eq {
+	0%, 100% { transform: scaleY(0.3); }
+	50% { transform: scaleY(1); }
+}
+
+@keyframes wiggle {
+	0%, 100% { transform: rotate(-4deg); }
+	50% { transform: rotate(4deg); }
+}
+
+@keyframes slide-in {
+	from { transform: translateX(2em); opacity: 0; }
+	to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes vinyl {
+	to { transform: rotate(360deg); }
+}

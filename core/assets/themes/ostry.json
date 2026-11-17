@@ -1,0 +1,55 @@
+{
+  "name": "Ostrý",
+  "description": "Čistý a jednoduchý: lomená bílá, černé linky, limetková, těžké nadpisy a strojopisné popisky. Bez zaoblení a stínů.",
+  "description_en": "Clean and simple: off-white, black lines, lime, heavy headings and typewriter labels. No rounding or shadows.",
+  "author": "music-box",
+  "colors": {
+    "background": "#f5f5f0",
+    "surface": "#fbfbf8",
+    "surface_2": "#ebebe5",
+    "surface_3": "#dcdcd4",
+    "text": "#0d0d0d",
+    "primary": "#d4ff3a",
+    "secondary": "#ffffff",
+    "success": "#d4ff3a",
+    "info": "#d4ff3a",
+    "extra": "#c9c9c1",
+    "on_accent": "#0d0d0d"
+  },
+  "fonts": {
+    "heading": "Archivo Black",
+    "body": "Inter Variable"
+  },
+  "font_files": [],
+  "radius": 0,
+  "shadow": "none",
+  "pattern": "none",
+  "animations": true,
+  "css": "/* Těžké nadpisy verzálkami */\nh1, h2, h3, .mb-brand { text-transform: uppercase; letter-spacing: -0.02em; }\n/* Tenké černé linky místo stínů */\n.card, .mb-panel { border: 1px solid var(--color-white); box-shadow: none !important; }\n.btn { border: 1px solid var(--color-white); text-transform: uppercase; letter-spacing: 0.02em; }\n.btn:not(:disabled):active { transform: none; background-image: linear-gradient(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.08)); }\n.input { border: 1px solid var(--color-white); }\n/* Strojopisné popisky */\n.mb-label, .chip { font-family: 'IBM Plex Mono', ui-monospace, monospace; text-transform: uppercase; letter-spacing: 0.18em; font-weight: 500; }\n.chip { border: 1px solid currentColor; }\n/* Zvýraznění černou, žádná barevná záře */\n.mb-accent-scope { --mb-accent: var(--color-white) !important; }\n.mb-glow { display: none !important; }\n.mb-progress { background: var(--color-pink) !important; outline: 1px solid var(--color-white); }\n/* Čtvercový obal místo gramofonové desky */\n.mb-vinyl-record { background: none !important; box-shadow: none !important; border-radius: 0 !important; animation: none !important; }\n.mb-vinyl-cover { inset: 0 !important; border-radius: 0 !important; box-shadow: 0 0 0 1px var(--color-white) !important; }\n.mb-vinyl-hole, .mb-vinyl-arm, .mb-disc-hole { display: none !important; }\n.mb-disc { border-radius: 0 !important; animation: none !important; box-shadow: 0 0 0 1px var(--color-white) !important; }\n",
+  "effects": [
+    {
+      "id": "pulse",
+      "name": "Pulzující tečka u „Teď hraje“",
+      "animated": true,
+      "default": true,
+      "css": ".mb-label.mb-live::before { content: ''; display: inline-block; width: 0.75em; height: 0.75em; margin-right: 0.6em; border-radius: 999px; border: 1.5px solid var(--color-white); background: var(--color-pink); vertical-align: -0.05em; animation: mb-pulse 1.6s ease-in-out infinite; }\n.mb-label.mb-live > svg, .mb-label.mb-live > .mb-eq { display: none; }\n@keyframes mb-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgb(212 255 58 / 0.9); } 50% { box-shadow: 0 0 0 0.45em rgb(212 255 58 / 0); } }",
+      "name_en": "Pulsing dot at “Now playing”"
+    },
+    {
+      "id": "ticker",
+      "name": "Běžící pás dole",
+      "animated": true,
+      "default": true,
+      "css": "",
+      "name_en": "Ticker at the bottom"
+    },
+    {
+      "id": "grid",
+      "name": "Linky mřížky v pozadí",
+      "animated": false,
+      "default": true,
+      "css": "body { background-image: linear-gradient(90deg, rgb(0 0 0 / 0.07) 1px, transparent 1px), linear-gradient(rgb(0 0 0 / 0.07) 1px, transparent 1px) !important; background-size: 33.333vw 100vh, 100vw 50vh !important; }",
+      "name_en": "Grid lines in the background"
+    }
+  ]
+}

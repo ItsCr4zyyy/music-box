@@ -1,0 +1,55 @@
+{
+  "name": "Devadesátky",
+  "description": "Svoboda! Plakáty z roku 1989, trikolóra, psací stroj a srdíčko. Jednoduché, bez animací rozhraní.",
+  "description_en": "Freedom! Posters from 1989, the tricolour, a typewriter and a heart. Simple, no UI animations.",
+  "author": "music-box",
+  "colors": {
+    "background": "#f3ede0",
+    "surface": "#fffdf7",
+    "surface_2": "#e8e0cd",
+    "surface_3": "#d6cbb2",
+    "text": "#141414",
+    "primary": "#d7141a",
+    "secondary": "#11457e",
+    "success": "#11457e",
+    "info": "#11457e",
+    "extra": "#d7141a",
+    "on_accent": "#fffdf7"
+  },
+  "fonts": {
+    "heading": "Archivo Black",
+    "body": "Courier Prime"
+  },
+  "font_files": [],
+  "radius": 0.15,
+  "shadow": "hard",
+  "pattern": "none",
+  "animations": false,
+  "css": "/* Plakátové nadpisy */\nh1, h2, h3, .mb-brand { text-transform: uppercase; letter-spacing: 0.02em; }\n/* Karty jako vystřižené z papíru */\n.card, .mb-panel { border: 2px solid var(--color-white); }\n.btn { border: 2px solid var(--color-white); }\n/* Jednoduše: zvýraznění v červené z trikolóry, bez barevné záře */\n.mb-accent-scope { --mb-accent: var(--color-pink) !important; }\n.mb-glow { display: none !important; }\n",
+  "effects": [
+    {
+      "id": "keys",
+      "name": "Cinkání klíčů",
+      "animated": true,
+      "default": true,
+      "css": "",
+      "name_en": "Jingling keys"
+    },
+    {
+      "id": "tricolor",
+      "name": "Trikolóra nahoře",
+      "animated": false,
+      "default": true,
+      "css": "body::before { content: ''; position: fixed; inset: 0 0 auto 0; height: 8px; z-index: 100; pointer-events: none; background: linear-gradient(to bottom, #ffffff 0 33%, #d7141a 33% 66%, #11457e 66%); }",
+      "name_en": "Tricolour on top"
+    },
+    {
+      "id": "heart",
+      "name": "Srdíčko za názvem",
+      "animated": false,
+      "default": true,
+      "css": ".mb-brand::after { content: ''; display: inline-block; width: 0.8em; height: 0.7em; margin-left: 0.25em; vertical-align: 0.05em; background: #d7141a; -webkit-mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21.5 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.6 2.8 0 6.4 0c2 0 4 1 5.6 2.6C13.6 1 15.6 0 17.6 0 21.2 0 24 2.6 24 6.2c0 4.5-4.2 8.3-10.3 13.8z'/%3E%3C/svg%3E\") center / contain no-repeat; mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21.5 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.6 2.8 0 6.4 0c2 0 4 1 5.6 2.6C13.6 1 15.6 0 17.6 0 21.2 0 24 2.6 24 6.2c0 4.5-4.2 8.3-10.3 13.8z'/%3E%3C/svg%3E\") center / contain no-repeat; }",
+      "name_en": "Heart after the name"
+    }
+  ]
+}

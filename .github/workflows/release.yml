@@ -1,0 +1,60 @@
+# Builds the Windows and Linux installers and publishes them in a GitHub Release.
+# Run: create and push a tag, e.g.  git tag v0.1.0 && git push origin v0.1.0
+# (or manually in Actions → Release → Run workflow).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+          - platform: ubuntu-22.04
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Linux system packages
+        if: startsWith(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev patchelf
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            web/package-lock.json
+            box/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+
+      - name: Dependencies (web + display)
+        run: |
+          npm ci --prefix web
+          npm ci --prefix box
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: box
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
+          releaseName: music-box ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
+          releaseBody: |
+            **Windows:** `music-box_…_x64-setup.exe` – see [docs/install-windows.md](https://github.com/ItsCr4zyyy/music-box/blob/main/docs/install-windows.md)
+            **Linux:** `.deb` or `.AppImage` – see [docs/install-linux.md](https://github.com/ItsCr4zyyy/music-box/blob/main/docs/install-linux.md)
+          releaseDraft: false
+          prerelease: false

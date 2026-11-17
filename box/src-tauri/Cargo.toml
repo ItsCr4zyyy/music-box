@@ -1,0 +1,15 @@
+[package]
+name = "musicbox-display"
+version = "0.1.0"
+description = "Music-box – displej (co hraje, fronta) + server"
+edition = "2024"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/ItsCr4zyyy/music-box"
+
+[build-dependencies]
+tauri-build = { version = "2.7.5", features = [] }
+
+[dependencies]
+musicbox-core = { path = "../../core" }
+tauri = { version = "2.12.6", features = [] }
+tokio = { version = "1.54.1", features = ["sync"] }

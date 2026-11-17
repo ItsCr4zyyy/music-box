@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/baloo-2';
+@import '@fontsource-variable/nunito';
+/* Fonty vestavěného motivu Devadesátky */
+@import '@fontsource/archivo-black/400.css';
+@import '@fontsource/courier-prime/400.css';
+@import '@fontsource/courier-prime/700.css';
+/* Fonty vestavěného motivu Ostrý */
+@import '@fontsource-variable/inter';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+@theme {
+	--font-display: 'Baloo 2 Variable', ui-rounded, system-ui, sans-serif;
+	--font-sans: 'Nunito Variable', ui-rounded, system-ui, sans-serif;
+	--color-ink: #1b1036;
+	--color-ink-2: #251648;
+	--color-ink-3: #33205e;
+	--color-ink-4: #43307a;
+	--color-on-accent: #1b1036;
+	--color-pink: #ff5fa2;
+	--color-sun: #ffd23f;
+	--color-mint: #5ce1b9;
+	--color-sky: #6ec8ff;
+	--color-lilac: #b69cff;
+	--animate-wiggle: wiggle 0.6s ease-in-out;
+	--animate-pop: pop 0.25s ease-out;
+	@keyframes wiggle {
+		0%, 100% { transform: rotate(0); }
+		25% { transform: rotate(-8deg); }
+		75% { transform: rotate(8deg); }
+	}
+	@keyframes pop {
+		0% { transform: scale(0.94); opacity: 0; }
+		100% { transform: scale(1); opacity: 1; }
+	}
+}
+
+/* Výchozí hodnoty – motivy (/api/theme.css) je přepisují. */
+:root {
+	--mb-radius: 1;
+	--mb-shadow-card: 0 5px 0 0 rgb(0 0 0 / 0.25);
+	--mb-shadow-btn: 0 4px 0 0 rgb(0 0 0 / 0.3);
+	--mb-shadow-btn-active: 0 1px 0 0 rgb(0 0 0 / 0.3);
+	--mb-pattern: radial-gradient(rgb(255 255 255 / 0.05) 1.5px, transparent 1.5px);
+	--mb-pattern-size: 22px 22px;
+}
+
+@layer base {
+	html {
+		color-scheme: dark;
+		-webkit-tap-highlight-color: transparent;
+	}
+	body {
+		@apply min-h-dvh bg-ink font-sans text-[16px] text-white antialiased;
+		background-image: var(--mb-pattern);
+		background-size: var(--mb-pattern-size);
+		overscroll-behavior-y: none;
+	}
+	h1, h2, h3 {
+		@apply font-display leading-tight;
+	}
+	/* Zabránit zoomu iOS při psaní do polí. */
+	input, select, textarea {
+		font-size: 16px;
+	}
+}
+
+@layer components {
+	.card {
+		@apply rounded-3xl bg-ink-2 p-4 ring-1 ring-white/5;
+		box-shadow: var(--mb-shadow-card);
+	}
+	.btn {
+		@apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-2 font-display text-[1.05rem] font-semibold transition select-none disabled:cursor-not-allowed disabled:opacity-50;
+		box-shadow: var(--mb-shadow-btn);
+	}
+	.btn:not(:disabled):active {
+		transform: translateY(3px);
+		box-shadow: var(--mb-shadow-btn-active);
+	}
+	.btn-pink { @apply bg-pink text-on-accent; }
+	.btn-sun { @apply bg-sun text-on-accent; }
+	.btn-mint { @apply bg-mint text-on-accent; }
+	.btn-ghost { @apply bg-ink-3 text-white; }
+	.btn-icon { @apply size-11 shrink-0 rounded-xl p-0; }
+	.input {
+		@apply min-h-12 w-full rounded-2xl bg-ink-3 px-4 py-3 text-white ring-2 ring-transparent outline-none placeholder:text-white/40 focus:ring-pink;
+	}
+	.label {
+		@apply mb-1 block text-sm font-bold text-white/70;
+	}
+	.chip {
+		@apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold;
+	}
+	.section-title {
+		@apply flex items-center gap-2 font-display text-xl font-bold;
+	}
+}

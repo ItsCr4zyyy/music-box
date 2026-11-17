@@ -1,0 +1,9 @@
+target/
+node_modules/
+data/
+.svelte-kit/
+web/build/
+box/dist/
+box/src-tauri/gen/
+*.log
+/music/
