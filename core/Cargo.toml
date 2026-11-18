@@ -1,6 +1,6 @@
 [package]
 name = "musicbox-core"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/ItsCr4zyyy/music-box"
@@ -11,6 +11,7 @@ anyhow = "1.0.104"
 argon2 = "0.6.0"
 axum = { version = "0.8.9", features = ["ws", "macros"] }
 axum-extra = { version = "0.12.6", features = ["cookie"] }
+chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 dirs = "7.0.0"
 encoding_rs = "0.8.44"
 futures-util = "0.3.34"

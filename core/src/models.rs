@@ -127,6 +127,10 @@ pub struct StateSnapshot {
     pub theme_css: String,
     /// Zapnuté efekty aktivního motivu (vykresluje je displej).
     pub effects: Vec<String>,
+    /// Fronta je férová (řadí se po lidech) – ruční posouvání nemá smysl.
+    pub fair_queue: bool,
+    /// Zóna hlasitosti, která právě platí: (název, hlasitost).
+    pub volume_zone: Option<(String, f32)>,
     /// Hraje rádio (fronta je prázdná).
     pub radio: Option<RadioNow>,
     pub language: String,
@@ -284,6 +288,48 @@ pub struct Settings {
     pub normalize_volume: bool,
     /// Odkud smí DJ přidávat písničky (admin smí vždycky všechno).
     pub dj_sources: DjSources,
+    /// Férová fronta: písničky se střídají po lidech (přednost od admina dál platí).
+    pub fair_queue: bool,
+    /// Prolínání písniček v sekundách (0 = vypnuto).
+    pub crossfade_sec: u32,
+    /// Hlasitost podle času (např. noční klid).
+    pub volume_zones: Vec<VolumeZone>,
+}
+
+/// Časová zóna s vlastní hlasitostí. `from` a `to` jsou „HH:MM“; zóna může přecházet přes půlnoc.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct VolumeZone {
+    pub name: String,
+    pub from: String,
+    pub to: String,
+    /// Hlasitost 0.0–1.0 platná v zóně (může být nižší i vyšší než běžná).
+    pub volume: f32,
+    pub enabled: bool,
+}
+
+impl Default for VolumeZone {
+    fn default() -> Self {
+        VolumeZone { name: String::new(), from: "22:00".into(), to: "07:00".into(), volume: 0.3, enabled: true }
+    }
+}
+
+/// "HH:MM" → minuty od půlnoci.
+pub fn parse_hhmm(s: &str) -> Option<u32> {
+    let (h, m) = s.trim().split_once(':')?;
+    let (h, m) = (h.parse::<u32>().ok()?, m.parse::<u32>().ok()?);
+    (h < 24 && m < 60).then_some(h * 60 + m)
+}
+
+impl VolumeZone {
+    /// Platí zóna v danou minutu dne?
+    pub fn contains(&self, minute: u32) -> bool {
+        match (parse_hhmm(&self.from), parse_hhmm(&self.to)) {
+            (Some(f), Some(t)) if f < t => minute >= f && minute < t,
+            (Some(f), Some(t)) if f > t => minute >= f || minute < t, // přes půlnoc
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -304,6 +350,19 @@ impl Default for DjSources {
 }
 
 impl Settings {
+    /// Zóna hlasitosti, která právě platí (podle místního času počítače).
+    pub fn active_zone(&self) -> Option<&VolumeZone> {
+        use chrono::Timelike;
+        let now = chrono::Local::now();
+        let minute = now.hour() * 60 + now.minute();
+        self.volume_zones.iter().find(|z| z.enabled && z.contains(minute))
+    }
+
+    /// Hlasitost, která se má právě použít (zóna má přednost před běžnou hlasitostí).
+    pub fn effective_volume(&self) -> f32 {
+        self.active_zone().map(|z| z.volume).unwrap_or(self.volume).clamp(0.0, 1.0)
+    }
+
     /// Výstupní zařízení k použití (podporuje i staré nastavení s jedním zařízením).
     pub fn output_devices(&self) -> Vec<String> {
         if !self.audio_devices.is_empty() {
@@ -359,6 +418,9 @@ impl Default for Settings {
             audio_devices: vec![],
             normalize_volume: true,
             dj_sources: DjSources::default(),
+            fair_queue: true,
+            crossfade_sec: 0,
+            volume_zones: vec![],
         }
     }
 }
@@ -390,4 +452,23 @@ pub struct RemoteTrack {
     pub album: Option<String>,
     pub duration_sec: u32,
     pub artwork_url: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zones() {
+        let night = VolumeZone { from: "22:00".into(), to: "07:00".into(), ..Default::default() };
+        assert!(night.contains(23 * 60));
+        assert!(night.contains(3 * 60));
+        assert!(!night.contains(12 * 60));
+        assert!(!night.contains(7 * 60));
+        let day = VolumeZone { from: "18:30".into(), to: "20:00".into(), ..Default::default() };
+        assert!(day.contains(19 * 60));
+        assert!(!day.contains(20 * 60 + 1));
+        assert_eq!(parse_hhmm("7:05"), Some(425));
+        assert_eq!(parse_hhmm("25:00"), None);
+    }
 }

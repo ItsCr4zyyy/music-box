@@ -274,6 +274,22 @@ const en: Record<Key, string> = {
 	'system.audioMulti': 'Tick one or more devices. More devices = music plays on all of them at once (good for different rooms; in the same room a small delay may be audible).',
 	'system.normalize': 'Even out the volume',
 	'system.normalizeHint': 'Each song is measured once and made louder or quieter, so none is too quiet or too loud. The radio is not changed.',
+	'rules.queue': 'Queue',
+	'rules.fair': 'Fair queue',
+	'rules.fairHint': 'Songs take turns between people – adding five songs doesn’t jump ahead of everyone else. Admin priority still applies.',
+	'rules.crossfade': 'Crossfade between songs',
+	'rules.crossfadeHint': 'The end of one song smoothly blends into the start of the next.',
+	'rules.crossfadeLength': 'Crossfade length: {n} s',
+	'rules.zones': 'Volume by time',
+	'rules.zonesHint': 'During a zone the volume is set to the zone’s value (lower or higher). A zone can span midnight. Time is taken from the music-box computer.',
+	'rules.zoneName': 'Name (e.g. Quiet hours)',
+	'rules.zoneFrom': 'From',
+	'rules.zoneTo': 'To',
+	'rules.zoneVolume': 'Volume: {n} %',
+	'rules.zoneAdd': 'Add zone',
+	'rules.zoneDefaultName': 'Quiet hours',
+	'np.zone': 'Zone “{name}” is active – volume {n} %',
+	'queue.fairNote': 'Fair queue – the order takes turns between people.',
 	'system.data': 'Data:'
 };
 

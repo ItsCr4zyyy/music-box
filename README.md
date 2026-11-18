@@ -101,6 +101,16 @@ card has its own clock. Changes apply right away and the song continues where it
 loudness, similar to EBU R128 / ReplayGain) and played louder or quieter with a limiter, so a quiet old
 recording and a loud modern master end up at a similar level. The radio is left as it is.
 
+**Queue and playback** – **Admin → Rules**:
+
+- **Fair queue** (on by default) – songs take turns between people, so whoever adds five songs doesn't
+  jump ahead of everyone else; admin priority still comes first.
+- **Crossfade** (off by default) – the end of a song blends into the next one, 1–15 s.
+- **Volume by time** – zones such as "Quiet hours 22:00–07:00 → 30 %"; a zone can lower or raise the
+  volume and can span midnight. The time comes from the music-box computer.
+
+Release notes for each version are in [docs/release-notes](docs/release-notes).
+
 ## Themes
 
 **Admin → Look** – a theme applies to both the web and the display. Built-in themes:

@@ -46,6 +46,24 @@ jobs:
           npm ci --prefix web
           npm ci --prefix box
 
+      # Release notes: docs/release-notes/<tag>.md if it exists, otherwise a short install note.
+      - name: Release notes
+        id: notes
+        shell: bash
+        run: |
+          file="docs/release-notes/${GITHUB_REF_NAME}.md"
+          {
+            echo 'body<<NOTES_EOF'
+            if [ "$GITHUB_REF_TYPE" = "tag" ] && [ -f "$file" ]; then
+              cat "$file"
+            else
+              echo '**Windows:** `music-box_…_x64-setup.exe` – see [docs/install-windows.md](https://github.com/ItsCr4zyyy/music-box/blob/main/docs/install-windows.md)'
+              echo
+              echo '**Linux:** `.deb` or `.AppImage` – see [docs/install-linux.md](https://github.com/ItsCr4zyyy/music-box/blob/main/docs/install-linux.md)'
+            fi
+            echo 'NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,8 +71,6 @@ jobs:
           projectPath: box
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
           releaseName: music-box ${{ github.ref_type == 'tag' && github.ref_name || 'v__VERSION__' }}
-          releaseBody: |
-            **Windows:** `music-box_…_x64-setup.exe` – see [docs/install-windows.md](https://github.com/ItsCr4zyyy/music-box/blob/main/docs/install-windows.md)
-            **Linux:** `.deb` or `.AppImage` – see [docs/install-linux.md](https://github.com/ItsCr4zyyy/music-box/blob/main/docs/install-linux.md)
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false

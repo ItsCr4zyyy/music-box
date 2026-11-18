@@ -599,6 +599,14 @@ async fn put_settings(State(st): St, AuthUser(u): AuthUser, Json(mut s): Json<Se
     }
     s.display.qr_caption = s.display.qr_caption.trim().chars().take(80).collect();
     s.display.queue_length = s.display.queue_length.min(15);
+    s.crossfade_sec = s.crossfade_sec.min(15);
+    for z in &mut s.volume_zones {
+        z.name = z.name.trim().chars().take(40).collect();
+        z.volume = z.volume.clamp(0.0, 1.0);
+        if crate::models::parse_hhmm(&z.from).is_none() || crate::models::parse_hhmm(&z.to).is_none() {
+            return Err(ApiError::bad_request("Čas zóny musí být ve tvaru HH:MM"));
+        }
+    }
     // Verzi loga mění jen nahrání loga (formulář může mít starou hodnotu).
     s.display.logo_rev = st.settings().display.logo_rev;
     if st.themes.get(&s.theme).is_none() {

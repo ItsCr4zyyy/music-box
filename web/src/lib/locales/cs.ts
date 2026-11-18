@@ -273,6 +273,22 @@ const cs = {
 	'system.audioMulti': 'Zaškrtni jedno nebo víc zařízení. Víc zařízení = hraje se na všech najednou (hodí se do různých místností; ve stejné místnosti může být slyšet malé zpoždění).',
 	'system.normalize': 'Vyrovnat hlasitost',
 	'system.normalizeHint': 'Každá písnička se jednou změří a zesílí nebo ztlumí, aby žádná nebyla potichu ani moc nahlas. Rádio se nemění.',
+	'rules.queue': 'Fronta',
+	'rules.fair': 'Férová fronta',
+	'rules.fairHint': 'Písničky se střídají po lidech – kdo přidá pět písniček, nepředběhne ostatní. Přednost od admina platí dál.',
+	'rules.crossfade': 'Prolínání písniček (crossfade)',
+	'rules.crossfadeHint': 'Konec jedné písničky se plynule prolne se začátkem další.',
+	'rules.crossfadeLength': 'Délka prolínání: {n} s',
+	'rules.zones': 'Hlasitost podle času',
+	'rules.zonesHint': 'V daném čase se hlasitost nastaví na hodnotu zóny (může být nižší i vyšší). Zóna může jít přes půlnoc. Čas je podle počítače s music-boxem.',
+	'rules.zoneName': 'Název (např. Noční klid)',
+	'rules.zoneFrom': 'Od',
+	'rules.zoneTo': 'Do',
+	'rules.zoneVolume': 'Hlasitost: {n} %',
+	'rules.zoneAdd': 'Přidat zónu',
+	'rules.zoneDefaultName': 'Noční klid',
+	'np.zone': 'Teď platí zóna „{name}“ – hlasitost {n} %',
+	'queue.fairNote': 'Férová fronta – pořadí se řídí střídáním lidí.',
 	'system.data': 'Data:'
 } as const;
 

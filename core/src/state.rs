@@ -125,13 +125,15 @@ impl AppState {
         let s = self.settings();
         Ok(StateSnapshot {
             now_playing,
-            queue: self.db.queued()?,
+            queue: self.db.queued(s.fair_queue)?,
             history: self.db.history(8)?,
             volume: s.volume,
             join_url: self.join_url(),
             box_name: s.box_name.clone(),
             theme_css: self.theme_css_url(),
             effects: self.themes.enabled_effects(&s.theme, &s.display.effects),
+            fair_queue: s.fair_queue,
+            volume_zone: s.active_zone().map(|z| (z.name.clone(), z.volume)),
             radio: self.radio_now(),
             language: s.language.clone(),
             display: s.display.clone(),

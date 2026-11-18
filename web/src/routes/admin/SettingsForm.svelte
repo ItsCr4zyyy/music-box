@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Check, FolderOpen, LoaderCircle, Plus, Radio, Save, Search, X } from '@lucide/svelte';
+	import { Check, Clock, FolderOpen, ListMusic, LoaderCircle, Plus, Radio, Save, Search, X } from '@lucide/svelte';
 	import { api } from '#lib/api.ts';
 	import { toast, toastError } from '#lib/toasts.svelte.ts';
 	import { t } from '#lib/i18n.svelte.ts';
@@ -105,6 +105,53 @@
 			<Toggle bind:checked={s.dj_sources.youtube} label={t('rules.djYoutube')} />
 			<Toggle bind:checked={s.dj_sources.links} label={t('rules.djLinks')} />
 			<Toggle bind:checked={s.dj_sources.local} label={t('rules.djLocal')} />
+		</section>
+
+		<!-- Fronta: férovost a prolínání -->
+		<section class="card flex flex-col gap-4">
+			<h2 class="section-title"><ListMusic class="size-5 text-pink" strokeWidth={2.5} /> {t('rules.queue')}</h2>
+			<Toggle bind:checked={s.fair_queue} label={t('rules.fair')} hint={t('rules.fairHint')} />
+			<Toggle
+				checked={s.crossfade_sec > 0}
+				onchange={(on) => (s!.crossfade_sec = on ? 5 : 0)}
+				label={t('rules.crossfade')}
+				hint={t('rules.crossfadeHint')}
+			/>
+			{#if s.crossfade_sec > 0}
+				<label>
+					<span class="label">{t('rules.crossfadeLength', { n: s.crossfade_sec })}</span>
+					<input type="range" min="1" max="15" step="1" bind:value={s.crossfade_sec} class="w-full accent-pink" />
+				</label>
+			{/if}
+		</section>
+
+		<!-- Hlasitost podle času -->
+		<section class="card flex flex-col gap-3">
+			<h2 class="section-title"><Clock class="size-5 text-pink" strokeWidth={2.5} /> {t('rules.zones')}</h2>
+			<p class="text-sm text-white/60">{t('rules.zonesHint')}</p>
+			{#each s.volume_zones as z, i (i)}
+				<div class="flex flex-col gap-3 rounded-2xl bg-ink-3 p-3">
+					<div class="flex items-center gap-2">
+						<input type="checkbox" class="size-5 shrink-0 accent-pink" bind:checked={z.enabled} />
+						<input class="input min-h-10 py-2" bind:value={z.name} placeholder={t('rules.zoneName')} maxlength="40" />
+						<button class="grid size-10 shrink-0 place-items-center text-white/50" title={t('common.remove')} onclick={() => s!.volume_zones.splice(i, 1)}><X class="size-5" /></button>
+					</div>
+					<div class="grid grid-cols-2 gap-2">
+						<label><span class="label">{t('rules.zoneFrom')}</span><input class="input min-h-10 py-2" type="time" bind:value={z.from} /></label>
+						<label><span class="label">{t('rules.zoneTo')}</span><input class="input min-h-10 py-2" type="time" bind:value={z.to} /></label>
+					</div>
+					<label>
+						<span class="label">{t('rules.zoneVolume', { n: Math.round(z.volume * 100) })}</span>
+						<input type="range" min="0" max="1" step="0.05" bind:value={z.volume} class="w-full accent-pink" />
+					</label>
+				</div>
+			{/each}
+			<button
+				class="btn btn-ghost"
+				onclick={() => s!.volume_zones.push({ name: t('rules.zoneDefaultName'), from: '22:00', to: '07:00', volume: 0.3, enabled: true })}
+			>
+				<Plus class="size-5" strokeWidth={3} /> {t('rules.zoneAdd')}
+			</button>
 		</section>
 
 		<!-- Rádio -->

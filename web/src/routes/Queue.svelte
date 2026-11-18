@@ -14,6 +14,7 @@
 	const queue = $derived(live.state?.queue ?? []);
 	const isAdmin = $derived(hasRole(session.user, 'admin'));
 	const total = $derived(queue.reduce((s, e) => s + e.track.duration_sec, 0));
+	const fair = $derived(live.state?.fair_queue ?? false);
 	/** Admin: rozbalená položka s ovládáním. */
 	let open = $state<number | null>(null);
 
@@ -73,16 +74,18 @@
 						{/if}
 					</TrackRow>
 					{#if isAdmin && open === e.id}
-						<div transition:slide={{ duration: 150 }} class="mb-2 grid grid-cols-4 gap-2">
+						<div transition:slide={{ duration: 150 }} class="mb-2 grid {fair ? 'grid-cols-2' : 'grid-cols-4'} gap-2">
 							<button class="btn btn-sun px-0" title={t('queue.promote')} disabled={i === 0} onclick={() => call(`/queue/${e.id}/promote`)}>
 								<Zap class="size-5" strokeWidth={2.5} />
 							</button>
-							<button class="btn btn-ghost px-0" title={t('queue.up')} disabled={i === 0} onclick={() => call(`/queue/${e.id}/move`, 'POST', { dir: -1 })}>
-								<ChevronUp class="size-5" strokeWidth={2.5} />
-							</button>
-							<button class="btn btn-ghost px-0" title={t('queue.down')} disabled={i === queue.length - 1} onclick={() => call(`/queue/${e.id}/move`, 'POST', { dir: 1 })}>
-								<ChevronDown class="size-5" strokeWidth={2.5} />
-							</button>
+							{#if !fair}
+								<button class="btn btn-ghost px-0" title={t('queue.up')} disabled={i === 0} onclick={() => call(`/queue/${e.id}/move`, 'POST', { dir: -1 })}>
+									<ChevronUp class="size-5" strokeWidth={2.5} />
+								</button>
+								<button class="btn btn-ghost px-0" title={t('queue.down')} disabled={i === queue.length - 1} onclick={() => call(`/queue/${e.id}/move`, 'POST', { dir: 1 })}>
+									<ChevronDown class="size-5" strokeWidth={2.5} />
+								</button>
+							{/if}
 							<button class="btn btn-pink px-0" title={t('common.remove')} onclick={() => call(`/queue/${e.id}`, 'DELETE')}>
 								<X class="size-5" strokeWidth={2.5} />
 							</button>

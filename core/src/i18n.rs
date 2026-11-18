@@ -51,6 +51,7 @@ const EXACT: &[(&str, &str)] = &[
     ("Lokální knihovnu teď DJové používat nesmí", "DJs can't use the local library right now"),
     ("Písničky z YouTube teď DJové přidávat nesmí", "DJs can't add songs from YouTube right now"),
     ("Odkazy teď DJové přidávat nesmí", "DJs can't add links right now"),
+    ("Čas zóny musí být ve tvaru HH:MM", "Zone times must be in the HH:MM format"),
 ];
 
 /// (začátek česky, začátek anglicky) – zbytek textu (čísla, názvy) zůstane.

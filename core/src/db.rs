@@ -123,6 +123,29 @@ pub struct PlayableTrack {
     pub file_path: Option<String>,
 }
 
+/// Férové pořadí: kolo = kolikátá písnička daného člověka ve frontě. Kdo právě hraje, začíná o kolo později.
+/// Přednost (admin) zůstává na začátku, uvnitř kola se řadí podle přidání.
+pub fn fair_order(list: Vec<QueueEntry>, playing_user: Option<i64>) -> Vec<QueueEntry> {
+    use std::collections::HashMap;
+    let mut rounds: HashMap<Option<i64>, usize> = HashMap::new();
+    if let Some(u) = playing_user {
+        rounds.insert(Some(u), 1);
+    }
+    let mut keyed: Vec<(bool, usize, usize, QueueEntry)> = list
+        .into_iter()
+        .enumerate()
+        .map(|(i, e)| {
+            let user = e.added_by.as_ref().map(|u| u.id);
+            let round = rounds.entry(user).or_insert(0);
+            let r = *round;
+            *round += 1;
+            (!e.priority, if e.priority { 0 } else { r }, i, e)
+        })
+        .collect();
+    keyed.sort_by_key(|(not_prio, round, i, _)| (*not_prio, *round, *i));
+    keyed.into_iter().map(|(_, _, _, e)| e).collect()
+}
+
 impl Db {
     pub fn open(path: &Path) -> Result<Db> {
         let conn = Connection::open(path)?;
@@ -484,11 +507,19 @@ impl Db {
         })
     }
 
-    pub fn queued(&self) -> rusqlite::Result<Vec<QueueEntry>> {
-        self.with(|c| {
+    /// Čekající skladby v pořadí přehrávání. Férová fronta střídá lidi:
+    /// každý má „kola“ (1. písnička každého, pak 2. každého…), přednost od admina zůstává první.
+    pub fn queued(&self, fair: bool) -> rusqlite::Result<Vec<QueueEntry>> {
+        let (list, playing_user) = self.with(|c| {
             let mut st = c.prepare(&format!("{ENTRY_SELECT} WHERE q.status = 'queued' {QUEUE_ORDER}"))?;
-            st.query_map([], entry_from)?.collect()
-        })
+            let list: Vec<QueueEntry> = st.query_map([], entry_from)?.collect::<rusqlite::Result<_>>()?;
+            let playing: Option<i64> = c
+                .query_row("SELECT added_by FROM queue WHERE status = 'playing' LIMIT 1", [], |r| r.get(0))
+                .optional()?
+                .flatten();
+            Ok((list, playing))
+        })?;
+        Ok(if fair { fair_order(list, playing_user) } else { list })
     }
 
     pub fn history(&self, limit: u32) -> rusqlite::Result<Vec<QueueEntry>> {
@@ -504,19 +535,13 @@ impl Db {
         self.with(|c| c.query_row(&format!("{ENTRY_SELECT} WHERE q.id = ?1"), [id], entry_from).optional())
     }
 
-    pub fn next_queued(&self) -> rusqlite::Result<Option<QueueEntry>> {
-        self.with(|c| {
-            c.query_row(&format!("{ENTRY_SELECT} WHERE q.status = 'queued' {QUEUE_ORDER} LIMIT 1"), [], entry_from)
-                .optional()
-        })
+    pub fn next_queued(&self, fair: bool) -> rusqlite::Result<Option<QueueEntry>> {
+        Ok(self.queued(fair)?.into_iter().next())
     }
 
     /// Další skladby po aktuální (pro předstahování).
-    pub fn upcoming(&self, limit: u32) -> rusqlite::Result<Vec<QueueEntry>> {
-        self.with(|c| {
-            let mut st = c.prepare(&format!("{ENTRY_SELECT} WHERE q.status = 'queued' {QUEUE_ORDER} LIMIT ?1"))?;
-            st.query_map([limit], entry_from)?.collect()
-        })
+    pub fn upcoming(&self, limit: u32, fair: bool) -> rusqlite::Result<Vec<QueueEntry>> {
+        Ok(self.queued(fair)?.into_iter().take(limit as usize).collect())
     }
 
     pub fn entry_status(&self, id: i64) -> rusqlite::Result<Option<String>> {
@@ -549,7 +574,7 @@ impl Db {
 
     /// Posune položku o jedno místo nahoru (-1) nebo dolů (+1) prohozením se sousedem.
     pub fn shift(&self, id: i64, dir: i32) -> rusqlite::Result<()> {
-        let queue = self.queued()?;
+        let queue = self.queued(false)?;
         let Some(idx) = queue.iter().position(|e| e.id == id) else { return Ok(()) };
         let other = idx as i64 + dir as i64;
         if other < 0 || other as usize >= queue.len() {
@@ -586,5 +611,49 @@ impl Db {
         self.with(|c| {
             c.execute("UPDATE queue SET status = 'removed', finished_at = ?1 WHERE status = 'queued'", [now()]).map(|_| ())
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn e(id: i64, user: Option<i64>, priority: bool) -> QueueEntry {
+        QueueEntry {
+            id,
+            track: Track {
+                id,
+                source: "local".into(),
+                source_id: id.to_string(),
+                title: format!("t{id}"),
+                artist: String::new(),
+                album: None,
+                duration_sec: 0,
+                artwork_url: None,
+            },
+            added_by: user.map(|u| UserRef { id: u, name: format!("u{u}"), avatar_url: None }),
+            priority,
+            created_at: 0,
+        }
+    }
+
+    fn ids(v: Vec<QueueEntry>) -> Vec<i64> {
+        v.into_iter().map(|e| e.id).collect()
+    }
+
+    #[test]
+    fn fair_queue_alternates_people() {
+        // Karel (1) přidal 3 písničky, pak Ema (2) jednu, pak Tonda (3) jednu.
+        let list = vec![e(1, Some(1), false), e(2, Some(1), false), e(3, Some(1), false), e(4, Some(2), false), e(5, Some(3), false)];
+        assert_eq!(ids(fair_order(list.clone(), None)), vec![1, 4, 5, 2, 3]);
+        // Hraje Karel → v prvním kole jdou nejdřív ostatní.
+        assert_eq!(ids(fair_order(list, Some(1))), vec![4, 5, 1, 2, 3]);
+    }
+
+    #[test]
+    fn fair_queue_keeps_priority_first() {
+        let list = vec![e(9, Some(2), true), e(1, Some(1), false), e(2, Some(1), false), e(3, Some(2), false)];
+        // Emina přednost se počítá do jejího kola → ve 2. kole rozhoduje čas přidání.
+        assert_eq!(ids(fair_order(list, None)), vec![9, 1, 2, 3]);
     }
 }

@@ -66,6 +66,9 @@ export interface StateSnapshot {
 	display: DisplaySettings;
 	theme_css: string;
 	effects: string[];
+	fair_queue: boolean;
+	/** Právě platná zóna hlasitosti: [název, hlasitost]. */
+	volume_zone: [string, number] | null;
 	radio: RadioNow | null;
 	language: string;
 	server_time_ms: number;
@@ -109,6 +112,17 @@ export interface Settings {
 	audio_devices: string[];
 	normalize_volume: boolean;
 	dj_sources: DjSources;
+	fair_queue: boolean;
+	crossfade_sec: number;
+	volume_zones: VolumeZone[];
+}
+
+export interface VolumeZone {
+	name: string;
+	from: string;
+	to: string;
+	volume: number;
+	enabled: boolean;
 }
 
 export interface DjSources {

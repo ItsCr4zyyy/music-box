@@ -70,7 +70,19 @@ impl PlayerHandle {
 // ---------- Audio vlákno ----------
 
 enum AudioCmd {
-    Play { path: PathBuf, generation: u64, volume: f32, start_ms: u64, gain_db: f32 },
+    Play {
+        path: PathBuf,
+        generation: u64,
+        volume: f32,
+        start_ms: u64,
+        gain_db: f32,
+        /// Délka skladby (záloha, když ji dekodér nezná).
+        duration_ms: u64,
+        /// Prolnout se s tím, co hraje teď (0 = tvrdý střih).
+        crossfade_ms: u64,
+        /// Kolik ms před koncem ohlásit „blíží se konec“ (0 = neohlašovat).
+        near_end_ms: u64,
+    },
     /// Výstupní zařízení (prázdný seznam = výchozí zařízení systému).
     SetDevices(Vec<String>),
     /// Jeden dekodér streamu na každé zařízení.
@@ -84,6 +96,8 @@ enum AudioCmd {
 enum AudioEvent {
     Finished(u64),
     Error(u64, String),
+    /// Skladba za chvíli skončí – čas připravit další (crossfade).
+    NearEnd(u64),
 }
 
 /// Vnímaná hlasitost – lineární posuvník zní přirozeněji s kvadratickou křivkou.
@@ -140,20 +154,68 @@ struct Audio {
     players: Vec<rodio::Player>,
     generation: u64,
     active: bool,
+    /// Hlasitost posuvníku (před křivkou).
+    volume: f32,
+    /// Dohrávající přehrávače předchozí skladby při crossfade.
+    fading: Vec<rodio::Player>,
+    fade: Option<(Instant, Duration)>,
+    duration_ms: u64,
+    near_end_ms: u64,
+    near_end_sent: bool,
 }
 
 impl Audio {
     fn stop(&mut self) {
-        for p in self.players.drain(..) {
+        for p in self.players.drain(..).chain(self.fading.drain(..)) {
             p.stop();
         }
+        self.fade = None;
         self.active = false;
+    }
+
+    /// Průběh prolínání: nová skladba nahoru, stará dolů. Vrací true, dokud se prolíná.
+    fn tick_fade(&mut self) -> bool {
+        let Some((start, len)) = self.fade else { return false };
+        let t = (start.elapsed().as_secs_f32() / len.as_secs_f32().max(0.001)).min(1.0);
+        let base = gain(self.volume);
+        for p in &self.players {
+            p.set_volume((base * t) as _);
+        }
+        for p in &self.fading {
+            p.set_volume((base * (1.0 - t)) as _);
+        }
+        if t >= 1.0 {
+            for p in self.fading.drain(..) {
+                p.stop();
+            }
+            self.fade = None;
+            return false;
+        }
+        true
     }
 
     /// Otevře zařízení (pokud ještě nejsou) a pro každé vytvoří nový přehrávač.
     fn prepare(&mut self, generation: u64, volume: f32) -> Result<usize, String> {
-        self.stop();
+        self.prepare_with(generation, volume, 0)
+    }
+
+    /// Jako `prepare`, ale s `crossfade_ms` > 0 nechá dosavadní přehrávače dohrát se ztlumením.
+    fn prepare_with(&mut self, generation: u64, volume: f32, crossfade_ms: u64) -> Result<usize, String> {
+        if crossfade_ms > 0 && !self.players.is_empty() {
+            for p in self.fading.drain(..) {
+                p.stop();
+            }
+            self.fading = std::mem::take(&mut self.players);
+            self.fade = Some((Instant::now(), Duration::from_millis(crossfade_ms)));
+            self.active = false;
+        } else {
+            self.stop();
+        }
         self.generation = generation;
+        self.volume = volume;
+        self.near_end_sent = false;
+        self.near_end_ms = 0;
+        self.duration_ms = 0;
         if self.devices.is_empty() {
             let wanted = if self.wanted.is_empty() { vec![String::new()] } else { self.wanted.clone() };
             let mut errors = vec![];
@@ -170,24 +232,42 @@ impl Audio {
                 return Err(errors.join("; "));
             }
         }
+        let start_volume = if self.fade.is_some() { 0.0 } else { gain(volume) };
         for d in &self.devices {
             let p = rodio::Player::connect_new(d.mixer());
-            p.set_volume(gain(volume) as _);
+            p.set_volume(start_volume as _);
             self.players.push(p);
         }
         self.active = true;
         Ok(self.players.len())
     }
 
-    fn play_files(&mut self, path: &PathBuf, generation: u64, volume: f32, start_ms: u64, gain_db: f32) -> Result<(), String> {
-        let n = self.prepare(generation, volume)?;
-        // Každé zařízení má vlastní dekodér stejného souboru – spustí se současně.
-        let mut sources = Vec::with_capacity(n);
+    #[allow(clippy::too_many_arguments)]
+    fn play_files(
+        &mut self,
+        path: &PathBuf,
+        generation: u64,
+        volume: f32,
+        start_ms: u64,
+        gain_db: f32,
+        duration_ms: u64,
+        crossfade_ms: u64,
+        near_end_ms: u64,
+    ) -> Result<(), String> {
+        use rodio::Source;
+        // Dekodéry připravit dřív, než se sáhne na to, co hraje (chyba nesmí utnout předchozí skladbu).
+        let n = if self.devices.is_empty() { self.wanted.len().max(1) } else { self.devices.len() };
+        let mut decoders = Vec::with_capacity(n);
         for _ in 0..n {
             let f = std::fs::File::open(path).map_err(|e| e.to_string())?;
-            let dec = rodio::Decoder::try_from(f).map_err(|e| format!("Soubor nejde přehrát: {e}"))?;
-            sources.push(with_gain(dec, gain_db));
+            decoders.push(rodio::Decoder::try_from(f).map_err(|e| format!("Soubor nejde přehrát: {e}"))?);
         }
+        let known = decoders.first().and_then(|d| d.total_duration()).map(|d| d.as_millis() as u64);
+        let n = self.prepare_with(generation, volume, crossfade_ms)?;
+        self.duration_ms = known.filter(|d| *d > 0).unwrap_or(duration_ms);
+        self.near_end_ms = near_end_ms;
+        // Každé zařízení má vlastní dekodér stejného souboru – spustí se současně.
+        let sources: Vec<_> = decoders.into_iter().take(n).map(|d| with_gain(d, gain_db)).collect();
         for (p, src) in self.players.iter().zip(sources) {
             p.append(src);
             if start_ms > 0 {
@@ -198,17 +278,31 @@ impl Audio {
     }
 
     fn for_each(&self, f: impl Fn(&rodio::Player)) {
-        self.players.iter().for_each(f);
+        self.players.iter().chain(self.fading.iter()).for_each(f);
     }
 }
 
 fn audio_thread(rx: std_mpsc::Receiver<AudioCmd>, events: mpsc::UnboundedSender<AudioEvent>, pos: Arc<AtomicU64>) {
-    let mut a = Audio { wanted: vec![], devices: vec![], players: vec![], generation: 0, active: false };
+    let mut a = Audio {
+        wanted: vec![],
+        devices: vec![],
+        players: vec![],
+        generation: 0,
+        active: false,
+        volume: 0.8,
+        fading: vec![],
+        fade: None,
+        duration_ms: 0,
+        near_end_ms: 0,
+        near_end_sent: false,
+    };
     loop {
-        match rx.recv_timeout(Duration::from_millis(200)) {
-            Ok(AudioCmd::Play { path, generation, volume, start_ms, gain_db }) => {
+        // Při prolínání častější krok, ať je přechod plynulý.
+        let wait = if a.fade.is_some() { 40 } else { 200 };
+        match rx.recv_timeout(Duration::from_millis(wait)) {
+            Ok(AudioCmd::Play { path, generation, volume, start_ms, gain_db, duration_ms, crossfade_ms, near_end_ms }) => {
                 pos.store(start_ms, Ordering::Relaxed);
-                if let Err(e) = a.play_files(&path, generation, volume, start_ms, gain_db) {
+                if let Err(e) = a.play_files(&path, generation, volume, start_ms, gain_db, duration_ms, crossfade_ms, near_end_ms) {
                     a.stop();
                     let _ = events.send(AudioEvent::Error(generation, e));
                 }
@@ -239,13 +333,24 @@ fn audio_thread(rx: std_mpsc::Receiver<AudioCmd>, events: mpsc::UnboundedSender<
                 a.devices.clear();
                 a.wanted = list.into_iter().filter(|d| !d.is_empty()).collect();
             }
-            Ok(AudioCmd::Volume(v)) => a.for_each(|p| p.set_volume(gain(v) as _)),
+            Ok(AudioCmd::Volume(v)) => {
+                a.volume = v;
+                if a.fade.is_none() {
+                    a.for_each(|p| p.set_volume(gain(v) as _));
+                }
+            }
             Err(std_mpsc::RecvTimeoutError::Timeout) => {}
             Err(std_mpsc::RecvTimeoutError::Disconnected) => break,
         }
+        a.tick_fade();
         if a.active {
             if let Some(p) = a.players.first() {
-                pos.store(p.get_pos().as_millis() as u64, Ordering::Relaxed);
+                let at = p.get_pos().as_millis() as u64;
+                pos.store(at, Ordering::Relaxed);
+                if a.near_end_ms > 0 && !a.near_end_sent && a.duration_ms > a.near_end_ms * 2 && at + a.near_end_ms >= a.duration_ms {
+                    a.near_end_sent = true;
+                    let _ = events.send(AudioEvent::NearEnd(a.generation));
+                }
                 // Konec, až dohrají všechna zařízení.
                 if a.players.iter().all(|p| p.empty()) {
                     a.active = false;
@@ -322,6 +427,9 @@ async fn manager(
 ) {
     let mut generation = 0u64;
     let mut radio_ctl = RadioCtl::default();
+    // Crossfade: generace předchozí skladby, která ještě dohrává, zatímco se připravuje další.
+    let mut handover: Option<u64> = None;
+    let mut applied_volume = state.settings().effective_volume();
     let mut sync = tokio::time::interval(Duration::from_secs(5));
     let _ = audio.send(AudioCmd::SetDevices(state.settings().output_devices()));
 
@@ -399,6 +507,7 @@ async fn manager(
                     }
                 }
                 PlayerCmd::Skip => {
+                    handover = None;
                     if let Some(id) = state.player.status().current {
                         let _ = state.db.set_entry_status(id, "skipped");
                         let _ = audio.send(AudioCmd::Stop);
@@ -423,8 +532,10 @@ async fn manager(
                     state.set_radio(|r| if let Some(r) = r { r.paused = false });
                     state.notify();
                 }
-                PlayerCmd::SetVolume(v) => {
-                    let _ = audio.send(AudioCmd::Volume(v));
+                PlayerCmd::SetVolume(_) => {
+                    // Zóna hlasitosti má přednost před posuvníkem.
+                    applied_volume = state.settings().effective_volume();
+                    let _ = audio.send(AudioCmd::Volume(applied_volume));
                     state.notify();
                 }
                 PlayerCmd::DeviceChanged => {
@@ -453,8 +564,23 @@ async fn manager(
                     match result {
                         Ok((path, gain_db)) => {
                             generation += 1;
+                            let settings = state.settings();
                             let paused = state.player.status().paused;
-                            let _ = audio.send(AudioCmd::Play { path, generation, volume: state.settings().volume, start_ms: resume_ms, gain_db });
+                            let xf_ms = settings.crossfade_sec as u64 * 1000;
+                            // Prolnout jen při přechodu z dohrávající skladby (ne po přeskočení / pauze).
+                            let crossfade_ms = if handover.take().is_some() && !paused { xf_ms } else { 0 };
+                            let duration_ms = state.db.entry(entry_id).ok().flatten().map(|e| e.track.duration_sec as u64 * 1000).unwrap_or(0);
+                            applied_volume = settings.effective_volume();
+                            let _ = audio.send(AudioCmd::Play {
+                                path,
+                                generation,
+                                volume: applied_volume,
+                                start_ms: resume_ms,
+                                gain_db,
+                                duration_ms,
+                                crossfade_ms,
+                                near_end_ms: xf_ms,
+                            });
                             if paused {
                                 let _ = audio.send(AudioCmd::Pause);
                             }
@@ -473,7 +599,8 @@ async fn manager(
                     }
                     match result {
                         Ok(decoders) => {
-                            let _ = audio.send(AudioCmd::PlayRadio { decoders, generation: g, volume: state.settings().volume });
+                            applied_volume = state.settings().effective_volume();
+                            let _ = audio.send(AudioCmd::PlayRadio { decoders, generation: g, volume: applied_volume });
                             state.set_radio(|r| if let Some(r) = r { r.loading = false });
                         }
                         Err(e) => {
@@ -521,6 +648,21 @@ async fn manager(
                 }
             },
             Some(ev) = events.recv() => match ev {
+                AudioEvent::NearEnd(g) if g == generation && handover.is_none() => {
+                    // Crossfade: předchozí skladba dohrává, další se připraví a prolne.
+                    let st = state.player.status();
+                    if let (Some(id), false) = (st.current, st.paused) {
+                        if let Some(next) = pick_next(&state) {
+                            let _ = state.db.set_entry_status(id, "played");
+                            handover = Some(g);
+                            start(&state, next);
+                        }
+                    }
+                }
+                AudioEvent::Finished(g) | AudioEvent::Error(g, _) if handover == Some(g) => {
+                    // Předchozí skladba dohrála dřív, než byla další připravená – prostě navážeme bez prolnutí.
+                    handover = None;
+                }
                 AudioEvent::Finished(g) | AudioEvent::Error(g, _) if radio_ctl.generation == Some(g) => {
                     // Stream rádia skončil nebo vypadl – za chvíli znovu.
                     radio_ctl.generation = None;
@@ -543,7 +685,13 @@ async fn manager(
                 _ => {}
             },
             _ = sync.tick() => {
-                if state.player.status().current.is_some() {
+                // Zóny hlasitosti podle času.
+                let v = state.settings().effective_volume();
+                if (v - applied_volume).abs() > 0.001 {
+                    applied_volume = v;
+                    let _ = audio.send(AudioCmd::Volume(v));
+                    state.notify();
+                } else if state.player.status().current.is_some() {
                     state.notify();
                 }
             }
@@ -564,7 +712,7 @@ fn fail(state: &Arc<AppState>, entry_id: i64, error: &str) {
 }
 
 fn pick_next(state: &Arc<AppState>) -> Option<QueueEntry> {
-    if let Ok(Some(e)) = state.db.next_queued() {
+    if let Ok(Some(e)) = state.db.next_queued(state.settings().fair_queue) {
         return Some(e);
     }
     if state.settings().idle_mode == IdleMode::RandomLocal {
@@ -592,7 +740,7 @@ fn start(state: &Arc<AppState>, entry: QueueEntry) {
 
 /// Předem stáhne další skladby z YouTube, aby přechod byl okamžitý.
 fn prefetch(state: &Arc<AppState>) {
-    let Ok(next) = state.db.upcoming(2) else { return };
+    let Ok(next) = state.db.upcoming(2, state.settings().fair_queue) else { return };
     // YouTube předem stáhnout; s normalizací předem změřit i lokální soubory.
     let normalize = state.settings().normalize_volume;
     for e in next.into_iter().filter(|e| e.track.source == "youtube" || normalize) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Dices, LoaderCircle, Pause, Play, Radio, SkipForward, Volume2 } from '@lucide/svelte';
+	import { Clock, Dices, LoaderCircle, Pause, Play, Radio, SkipForward, Volume2 } from '@lucide/svelte';
 	import { api } from '#lib/api.ts';
 	import { live, positionSec } from '#lib/live.svelte.ts';
 	import { session } from '#lib/session.svelte.ts';
@@ -75,6 +75,12 @@
 			</label>
 		{/if}
 	</div>
+	{#if isAdmin && live.state?.volume_zone}
+		<p class="relative mt-2 flex items-center gap-1.5 text-xs font-bold text-sun">
+			<Clock class="size-3.5 shrink-0" />
+			{t('np.zone', { name: live.state.volume_zone[0], n: Math.round(live.state.volume_zone[1] * 100) })}
+		</p>
+	{/if}
 {/snippet}
 
 <section class="card mb-accent-scope relative overflow-hidden" style="--mb-accent: {accent}">
