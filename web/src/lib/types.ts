@@ -106,6 +106,15 @@ export interface Settings {
 	prevent_duplicates: boolean;
 	volume: number;
 	audio_device: string;
+	audio_devices: string[];
+	normalize_volume: boolean;
+	dj_sources: DjSources;
+}
+
+export interface DjSources {
+	youtube: boolean;
+	links: boolean;
+	local: boolean;
 }
 
 export interface AudioDevice {

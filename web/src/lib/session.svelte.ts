@@ -1,5 +1,5 @@
 import { api, ApiError } from './api.ts';
-import type { User } from './types.ts';
+import type { DjSources, User } from './types.ts';
 
 interface Info {
 	needs_setup: boolean;
@@ -7,6 +7,7 @@ interface Info {
 	version: string;
 	box_name: string;
 	language: string;
+	dj_sources: DjSources;
 }
 
 export const session = $state<{ user: User | null; info: Info | null; loaded: boolean }>({
@@ -27,6 +28,12 @@ export async function loadSession() {
 		if (e instanceof ApiError && (e.status === 401 || e.status === 403)) session.user = null;
 	}
 	session.loaded = true;
+}
+
+/** Odkud smí přihlášený uživatel přidávat (admin vždy všechno). */
+export function allowedSources(): DjSources {
+	if (session.user?.role === 'admin') return { youtube: true, links: true, local: true };
+	return session.info?.dj_sources ?? { youtube: true, links: true, local: true };
 }
 
 export async function logout() {

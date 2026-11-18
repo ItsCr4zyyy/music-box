@@ -276,8 +276,44 @@ pub struct Settings {
     pub prevent_duplicates: bool,
     /// Hlasitost 0.0–1.0.
     pub volume: f32,
-    /// ID výstupního zvukového zařízení (prázdné = výchozí zařízení systému).
+    /// Zastaralé – jedno výstupní zařízení (nahrazeno `audio_devices`).
     pub audio_device: String,
+    /// Výstupní zvuková zařízení (prázdné = výchozí zařízení systému). Víc zařízení = hraje se na všech.
+    pub audio_devices: Vec<String>,
+    /// Vyrovnat hlasitost skladeb (aby jedna nebyla potichu a druhá nahlas).
+    pub normalize_volume: bool,
+    /// Odkud smí DJ přidávat písničky (admin smí vždycky všechno).
+    pub dj_sources: DjSources,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct DjSources {
+    /// Hledání na YouTube Music.
+    pub youtube: bool,
+    /// Vložené odkazy (YouTube, Spotify).
+    pub links: bool,
+    /// Lokální knihovna.
+    pub local: bool,
+}
+
+impl Default for DjSources {
+    fn default() -> Self {
+        DjSources { youtube: true, links: true, local: true }
+    }
+}
+
+impl Settings {
+    /// Výstupní zařízení k použití (podporuje i staré nastavení s jedním zařízením).
+    pub fn output_devices(&self) -> Vec<String> {
+        if !self.audio_devices.is_empty() {
+            self.audio_devices.clone()
+        } else if !self.audio_device.is_empty() {
+            vec![self.audio_device.clone()]
+        } else {
+            vec![]
+        }
+    }
 }
 
 /// Výstupní zvukové zařízení pro výběr v administraci.
@@ -320,6 +356,9 @@ impl Default for Settings {
             prevent_duplicates: true,
             volume: 0.8,
             audio_device: String::new(),
+            audio_devices: vec![],
+            normalize_volume: true,
+            dj_sources: DjSources::default(),
         }
     }
 }

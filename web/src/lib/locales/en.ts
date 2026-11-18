@@ -262,6 +262,18 @@ const en: Record<Key, string> = {
 	'system.audioRefresh': 'Reload devices',
 	'system.audioMissing': 'The selected device is not connected right now – playing on the default one.',
 	'system.audioSaved': 'Audio output changed',
+	'rules.djSources': 'What DJs can add',
+	'rules.djSourcesHint': 'An administrator can always add everything.',
+	'rules.djYoutube': 'Searching YouTube Music',
+	'rules.djLinks': 'YouTube and Spotify links',
+	'rules.djLocal': 'Local library (music on disk)',
+	'add.youtubeOff': 'YouTube search is off – only the library is searched.',
+	'add.localOff': 'Only YouTube Music is searched.',
+	'add.linksOff': 'Links can’t be added right now.',
+	'add.nothingAllowed': 'The administrator has turned off adding songs for now.',
+	'system.audioMulti': 'Tick one or more devices. More devices = music plays on all of them at once (good for different rooms; in the same room a small delay may be audible).',
+	'system.normalize': 'Even out the volume',
+	'system.normalizeHint': 'Each song is measured once and made louder or quieter, so none is too quiet or too loud. The radio is not changed.',
 	'system.data': 'Data:'
 };
 

@@ -2581,6 +2581,7 @@ dependencies = [
  "axum",
  "axum-extra",
  "dirs",
+ "encoding_rs",
  "futures-util",
  "local-ip-address",
  "lofty",

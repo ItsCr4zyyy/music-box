@@ -3,7 +3,7 @@
 	import { Check, Link, LoaderCircle, Plus, Search, Zap } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { api } from '#lib/api.ts';
-	import { session } from '#lib/session.svelte.ts';
+	import { allowedSources, session } from '#lib/session.svelte.ts';
 	import { toast, toastError } from '#lib/toasts.svelte.ts';
 	import { hasRole, type Track } from '#lib/types.ts';
 	import TrackRow from '#lib/components/TrackRow.svelte';
@@ -24,6 +24,8 @@
 	let added = $state<Record<number, boolean>>({});
 	const isAdmin = $derived(hasRole(session.user, 'admin'));
 	const isLink = $derived(/^(https?:\/\/|spotify:)/i.test(q.trim()));
+	const allowed = $derived(allowedSources());
+	const canSearch = $derived(allowed.youtube || allowed.local);
 
 	let timer: ReturnType<typeof setTimeout>;
 	let seq = 0;
@@ -85,8 +87,9 @@
 	class="sticky top-[60px] z-20 -mx-4 mb-2 bg-ink/85 px-4 pb-2 backdrop-blur"
 	onsubmit={(e) => {
 		e.preventDefault();
-		if (isLink) add({ url: q.trim() }, 'url');
-		else run();
+		if (isLink) {
+			if (allowed.links) add({ url: q.trim() }, 'url');
+		} else run();
 	}}
 >
 	<div class="relative">
@@ -95,7 +98,9 @@
 		</span>
 		<input class="input pl-12" type="search" enterkeyhint="search" placeholder={t('add.placeholder')} bind:value={q} oninput={onInput} />
 	</div>
-	{#if isLink}
+	{#if isLink && !allowed.links}
+		<p class="mt-2 rounded-xl bg-pink/15 px-3 py-2 text-sm font-bold text-pink">{t('add.linksOff')}</p>
+	{:else if isLink}
 		<div class="mt-2 flex gap-2">
 			<button class="btn btn-pink flex-1" disabled={busy.url}>
 				{#if busy.url}<LoaderCircle class="size-5 animate-spin" />{:else}<Plus class="size-5" strokeWidth={3} />{/if} {t('add.addLink')}
@@ -115,16 +120,16 @@
 	{#if results.local.length}
 		<h2 class="mt-2 mb-1 text-sm font-bold tracking-wide text-white/50 uppercase">{t('add.fromLibrary')}</h2>
 		<div class="flex flex-col divide-y divide-white/5">
-			{#each results.local as t (t.id)}
-				<TrackRow track={t}>{@render addButtons(t)}</TrackRow>
+			{#each results.local as tr (tr.id)}
+				<TrackRow track={tr}>{@render addButtons(tr)}</TrackRow>
 			{/each}
 		</div>
 	{/if}
 	{#if results.youtube.length}
 		<h2 class="mt-4 mb-1 text-sm font-bold tracking-wide text-white/50 uppercase">{t('add.youtube')}</h2>
 		<div class="flex flex-col divide-y divide-white/5">
-			{#each results.youtube as t (t.id)}
-				<TrackRow track={t}>{@render addButtons(t)}</TrackRow>
+			{#each results.youtube as tr (tr.id)}
+				<TrackRow track={tr}>{@render addButtons(tr)}</TrackRow>
 			{/each}
 		</div>
 	{/if}
@@ -133,6 +138,14 @@
 	{/if}
 {:else if !isLink}
 	<div class="card mt-2 text-sm text-white/60">
-		{t('add.help')}
+		{#if !canSearch && !allowed.links}
+			{t('add.nothingAllowed')}
+		{:else if !allowed.youtube}
+			{t('add.youtubeOff')}
+		{:else if !allowed.local}
+			{t('add.localOff')}
+		{:else}
+			{t('add.help')}
+		{/if}
 	</div>
 {/if}

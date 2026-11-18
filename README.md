@@ -40,6 +40,9 @@ First run: scan the QR code on the screen and **sign up – the first account be
 
 New people sign up themselves and wait for approval in **Admin → People**.
 
+**What DJs can add** – **Admin → Rules**: allow or block YouTube Music search, YouTube / Spotify
+links and the local library separately (e.g. only music from the disk). Admins can always add everything.
+
 ## Music sources
 
 - **YouTube / YouTube Music** – fast search through YouTube Music, audio is downloaded with
@@ -89,8 +92,14 @@ the QR code and of the logo with the name, your own logo, the text next to the Q
 length of the queue, who-added-it, fullscreen, language and the special effects of the current theme.
 F11 on the display toggles fullscreen temporarily.
 
-**Audio output** – **Admin → System**: choose the output device (Windows WASAPI, Linux ALSA including
-PipeWire / PulseAudio). The change applies right away and the song continues where it was.
+**Audio output** – **Admin → System**: tick one or more output devices (Windows WASAPI, Linux ALSA
+including PipeWire / PulseAudio). With several devices the music plays on all of them at once – great
+for different rooms; in the same room a small delay between them may be audible, because every sound
+card has its own clock. Changes apply right away and the song continues where it was.
+
+**Even out the volume** – **Admin → System** (on by default): every song is measured once (gated
+loudness, similar to EBU R128 / ReplayGain) and played louder or quieter with a limiter, so a quiet old
+recording and a loud modern master end up at a similar level. The radio is left as it is.
 
 ## Themes
 

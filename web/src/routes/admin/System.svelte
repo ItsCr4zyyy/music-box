@@ -2,6 +2,7 @@
 	import { t } from '#lib/i18n.svelte.ts';
 	import { CircleCheck, Download, FolderOpen, LoaderCircle, RefreshCw, TriangleAlert, CirclePlay, Speaker } from '@lucide/svelte';
 	import type { AudioDevice, Settings } from '#lib/types.ts';
+	import Toggle from './Toggle.svelte';
 	import { api } from '#lib/api.ts';
 	import { toast, toastError } from '#lib/toasts.svelte.ts';
 
@@ -28,7 +29,9 @@
 	load();
 
 	let devices = $state<AudioDevice[] | null>(null);
-	let currentDevice = $state('');
+	/** Zvolená zařízení (prázdné = výchozí zařízení systému). */
+	let selected = $state<string[]>([]);
+	let normalize = $state(true);
 	let devBusy = $state(false);
 
 	async function loadDevices() {
@@ -36,7 +39,8 @@
 		try {
 			const [list, s] = await Promise.all([api<AudioDevice[]>('/admin/audio/devices'), api<Settings>('/admin/settings')]);
 			devices = list;
-			currentDevice = s.audio_device;
+			selected = s.audio_devices.length ? s.audio_devices : s.audio_device ? [s.audio_device] : [];
+			normalize = s.normalize_volume;
 		} catch (e) {
 			toastError(e);
 		} finally {
@@ -45,20 +49,24 @@
 	}
 	loadDevices();
 
-	async function setDevice(id: string) {
+	async function saveAudio(patch: Partial<Settings>, message: string) {
 		try {
 			const s = await api<Settings>('/admin/settings');
-			s.audio_device = id;
-			await api('/admin/settings', { method: 'PUT', body: s });
-			currentDevice = id;
-			toast(t('system.audioSaved'), 'success');
+			await api('/admin/settings', { method: 'PUT', body: { ...s, ...patch } });
+			toast(message, 'success');
 		} catch (e) {
 			toastError(e);
+			await loadDevices();
 		}
 	}
 
+	function toggleDevice(id: string, on: boolean) {
+		selected = id === '' ? [] : on ? [...selected, id] : selected.filter((d) => d !== id);
+		saveAudio({ audio_devices: selected, audio_device: '' }, t('system.audioSaved'));
+	}
+
 	const defaultName = $derived(devices?.find((d) => d.is_default)?.name ?? '');
-	const missing = $derived(!!devices && !!currentDevice && !devices.some((d) => d.id === currentDevice));
+	const missing = $derived((devices ? selected.filter((id) => !devices!.some((d) => d.id === id)) : []));
 
 	async function action(key: string, path: string, done: (r: any) => string) {
 		busy[key] = true;
@@ -86,12 +94,31 @@
 			<h2 class="section-title"><Speaker class="size-5 text-pink" strokeWidth={2.5} /> {t('system.audio')}</h2>
 			<p class="text-sm text-white/60">{t('system.audioHint')}</p>
 			{#if devices}
-				<select class="input" value={currentDevice} onchange={(e) => setDevice(e.currentTarget.value)}>
-					<option value="">{t('system.audioDefault')}{defaultName ? ` (${t('system.audioDefaultNow', { name: defaultName })})` : ''}</option>
-					{#each devices as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
-					{#if missing}<option value={currentDevice}>{currentDevice}</option>{/if}
-				</select>
-				{#if missing}<p class="flex items-center gap-2 text-sm text-sun"><TriangleAlert class="size-4 shrink-0" /> {t('system.audioMissing')}</p>{/if}
+				<p class="text-xs text-white/40">{t('system.audioMulti')}</p>
+				<div class="flex flex-col gap-1 rounded-2xl bg-ink-3 p-2">
+					<label class="flex cursor-pointer items-center gap-3 rounded-xl p-2">
+						<input type="checkbox" class="size-5 shrink-0 accent-pink" checked={selected.length === 0} onchange={() => toggleDevice('', true)} />
+						<span class="min-w-0">
+							<span class="block font-bold">{t('system.audioDefault')}</span>
+							{#if defaultName}<span class="block truncate text-xs text-white/50">{t('system.audioDefaultNow', { name: defaultName })}</span>{/if}
+						</span>
+					</label>
+					{#each devices as d (d.id)}
+						<label class="flex cursor-pointer items-center gap-3 rounded-xl p-2">
+							<input type="checkbox" class="size-5 shrink-0 accent-pink" checked={selected.includes(d.id)} onchange={(e) => toggleDevice(d.id, e.currentTarget.checked)} />
+							<span class="min-w-0 truncate">{d.name}</span>
+						</label>
+					{/each}
+				</div>
+				{#if missing.length}<p class="flex items-center gap-2 text-sm text-sun"><TriangleAlert class="size-4 shrink-0" /> {t('system.audioMissing')}</p>{/if}
+				<div class="mt-1 border-t border-white/5 pt-3">
+					<Toggle
+						bind:checked={normalize}
+						onchange={(v) => saveAudio({ normalize_volume: v }, t('common.saved'))}
+						label={t('system.normalize')}
+						hint={t('system.normalizeHint')}
+					/>
+				</div>
 			{/if}
 			<button class="btn btn-ghost" disabled={devBusy} onclick={loadDevices}>
 				<RefreshCw class="size-5 {devBusy ? 'animate-spin' : ''}" /> {t('system.audioRefresh')}

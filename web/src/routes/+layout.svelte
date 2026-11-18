@@ -5,7 +5,7 @@
 	import Avatar from '#lib/components/Avatar.svelte';
 	import Toasts from '#lib/components/Toasts.svelte';
 	import { live } from '#lib/live.svelte.ts';
-	import { loadSession, session } from '#lib/session.svelte.ts';
+	import { allowedSources, loadSession, session } from '#lib/session.svelte.ts';
 	import { initLang, setBoxDefault, t } from '#lib/i18n.svelte.ts';
 	import { hasRole, logoUrl } from '#lib/types.ts';
 	import { page } from '$app/state';
@@ -34,7 +34,7 @@
 		[
 			{ href: '/', label: t('nav.queue'), icon: ListMusic, show: true },
 			{ href: '/add', label: t('nav.add'), icon: Search, show: hasRole(session.user, 'dj') },
-			{ href: '/library', label: t('nav.library'), icon: LibraryBig, show: hasRole(session.user, 'dj') },
+			{ href: '/library', label: t('nav.library'), icon: LibraryBig, show: hasRole(session.user, 'dj') && allowedSources().local },
 			{ href: '/admin', label: t('nav.admin'), icon: Settings, show: hasRole(session.user, 'admin') },
 			session.user
 				? { href: '/account', label: t('nav.account'), icon: User, show: true }

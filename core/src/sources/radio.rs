@@ -97,11 +97,8 @@ impl IcyStream {
         if n > 0 {
             let mut meta = vec![0u8; n];
             self.read_exact_inner(&mut meta)?;
-            let text = String::from_utf8_lossy(&meta);
-            if let Some(start) = text.find("StreamTitle='") {
-                let rest = &text[start + 13..];
-                let end = rest.find("';").unwrap_or(rest.trim_end_matches('\0').len());
-                (self.on_title)(rest[..end].to_string());
+            if let Some(title) = parse_stream_title(&meta) {
+                (self.on_title)(title);
             }
         }
         Ok(())
@@ -176,4 +173,98 @@ pub fn open(url: &str, on_title: impl Fn(String) + Send + Sync + 'static) -> Res
         .with_hint(hint)
         .build()
         .map_err(|e| anyhow::anyhow!("stream nejde dekódovat: {e}"))
+}
+
+/// Vytáhne `StreamTitle='…'` z ICY metadat a převede text na UTF-8.
+/// Stanice posílají UTF-8, Windows-1250 i ISO-8859-2 a někdy HTML entity (`&#353;`).
+pub fn parse_stream_title(meta: &[u8]) -> Option<String> {
+    const KEY: &[u8] = b"StreamTitle='";
+    let start = meta.windows(KEY.len()).position(|w| w == KEY)? + KEY.len();
+    let rest = &meta[start..];
+    let end = rest.windows(2).position(|w| w == b"';").unwrap_or_else(|| rest.iter().position(|b| *b == 0).unwrap_or(rest.len()));
+    let raw = &rest[..end];
+    let text = match std::str::from_utf8(raw) {
+        Ok(t) => t.to_string(),
+        Err(_) => {
+            // Bajty 0x80–0x9F jsou ve Windows-1250 písmena (š, ž, ť…), v ISO-8859-2 řídicí znaky.
+            let enc = if raw.iter().any(|b| (0x80..=0x9f).contains(b)) {
+                encoding_rs::WINDOWS_1250
+            } else {
+                encoding_rs::ISO_8859_2
+            };
+            enc.decode_without_bom_handling(raw).0.into_owned()
+        }
+    };
+    Some(decode_entities(&text).trim().to_string())
+}
+
+/// `&#353;`, `&#x161;`, `&amp;`, `&quot;`… → znaky.
+fn decode_entities(s: &str) -> String {
+    if !s.contains('&') {
+        return s.to_string();
+    }
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(i) = rest.find('&') {
+        out.push_str(&rest[..i]);
+        rest = &rest[i..];
+        let Some(semi) = rest[..rest.len().min(12)].find(';') else {
+            out.push('&');
+            rest = &rest[1..];
+            continue;
+        };
+        let entity = &rest[1..semi];
+        let decoded = if let Some(hex) = entity.strip_prefix("#x").or_else(|| entity.strip_prefix("#X")) {
+            u32::from_str_radix(hex, 16).ok().and_then(char::from_u32)
+        } else if let Some(dec) = entity.strip_prefix('#') {
+            dec.parse::<u32>().ok().and_then(char::from_u32)
+        } else {
+            match entity {
+                "amp" => Some('&'),
+                "quot" => Some('"'),
+                "apos" => Some('\''),
+                "lt" => Some('<'),
+                "gt" => Some('>'),
+                "nbsp" => Some(' '),
+                _ => None,
+            }
+        };
+        match decoded {
+            Some(c) => {
+                out.push(c);
+                rest = &rest[semi + 1..];
+            }
+            None => {
+                out.push('&');
+                rest = &rest[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stream_titles() {
+        // UTF-8
+        assert_eq!(parse_stream_title("StreamTitle='KAYA - Odevzdávám se';".as_bytes()).unwrap(), "KAYA - Odevzdávám se");
+        // Windows-1250 + HTML entita (jako posílá Fajn Rádio)
+        let mut cp1250 = b"StreamTitle='KAYA - odevzd".to_vec();
+        cp1250.extend_from_slice(&[0xE1]); // á
+        cp1250.extend_from_slice(b"v");
+        cp1250.extend_from_slice(&[0xE1]);
+        cp1250.extend_from_slice(b"m se v&#353;e ");
+        cp1250.extend_from_slice(&[0x9A, 0x9E]); // š ž
+        cp1250.extend_from_slice(b"';StreamUrl='';");
+        assert_eq!(parse_stream_title(&cp1250).unwrap(), "KAYA - odevzdávám se vše šž");
+        // ISO-8859-2: š = 0xB9
+        let latin2 = [b"StreamTitle='".as_slice(), &[0xB9, 0xE1], b"';"].concat();
+        assert_eq!(parse_stream_title(&latin2).unwrap(), "šá");
+        assert_eq!(parse_stream_title(b"StreamTitle='Rock &amp; Roll';").unwrap(), "Rock & Roll");
+        assert!(parse_stream_title(b"StreamUrl='';").is_none());
+    }
 }

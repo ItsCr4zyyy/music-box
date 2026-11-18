@@ -81,6 +81,7 @@ async fn info(State(st): St) -> ApiResult<Json<Value>> {
         "allow_registration": s.allow_registration,
         "version": env!("CARGO_PKG_VERSION"),
         "box_name": s.box_name,
+        "dj_sources": s.dj_sources,
         "language": s.language,
     })))
 }
@@ -279,14 +280,54 @@ async fn search(State(st): St, AuthUser(u): AuthUser, Query(q): Query<SearchQ>) 
     if q.chars().count() < 2 {
         return Ok(Json(json!({ "local": [], "youtube": [] })));
     }
-    let local = st.db.search_local(q, 20)?;
-    let youtube: Vec<Track> = search_youtube(&st, q).await.iter().take(15).filter_map(|r| store_remote(&st, r).ok()).collect();
+    let allowed = Allowed::for_user(&st, &u);
+    let local = if allowed.local { st.db.search_local(q, 20)? } else { vec![] };
+    let youtube: Vec<Track> = if allowed.youtube {
+        search_youtube(&st, q).await.iter().take(15).filter_map(|r| store_remote(&st, r).ok()).collect()
+    } else {
+        vec![]
+    };
     Ok(Json(json!({ "local": local, "youtube": youtube })))
 }
 
 async fn library(State(st): St, AuthUser(u): AuthUser) -> ApiResult<Json<Library>> {
     require(&u, Role::Dj)?;
+    if !Allowed::for_user(&st, &u).local {
+        return Err(ApiError::forbidden("Lokální knihovnu teď DJové používat nesmí"));
+    }
     Ok(Json(st.db.library()?))
+}
+
+/// Odkud smí uživatel přidávat (admin vždy všechno, DJ podle nastavení).
+struct Allowed {
+    youtube: bool,
+    links: bool,
+    local: bool,
+}
+
+impl Allowed {
+    fn for_user(st: &AppState, u: &User) -> Allowed {
+        if u.role == Role::Admin {
+            return Allowed { youtube: true, links: true, local: true };
+        }
+        let d = st.settings().dj_sources;
+        Allowed { youtube: d.youtube, links: d.links, local: d.local }
+    }
+
+    fn check_track(&self, t: &Track) -> ApiResult<()> {
+        let ok = match t.source.as_str() {
+            "local" => self.local,
+            // Skladba z YouTube mohla přijít z hledání i z odkazu.
+            _ => self.youtube || self.links,
+        };
+        if ok {
+            Ok(())
+        } else if t.source == "local" {
+            Err(ApiError::forbidden("Lokální knihovnu teď DJové používat nesmí"))
+        } else {
+            Err(ApiError::forbidden("Písničky z YouTube teď DJové přidávat nesmí"))
+        }
+    }
 }
 
 /// Najde Spotify skladbu na YouTube Music (podle názvu, interpreta a délky).
@@ -353,6 +394,10 @@ async fn add_to_queue(State(st): St, AuthUser(u): AuthUser, Json(req): Json<AddR
         return Err(ApiError::forbidden("Přednost ve frontě může dát jen administrátor"));
     }
     let url = req.url.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let allowed = Allowed::for_user(&st, &u);
+    if url.is_some() && !allowed.links {
+        return Err(ApiError::forbidden("Odkazy teď DJové přidávat nesmí"));
+    }
     let tracks = if let Some(id) = req.track_id {
         vec![st.db.track(id)?.ok_or_else(|| ApiError::not_found("Skladba neexistuje"))?]
     } else if let Some(key) = &req.album {
@@ -366,6 +411,9 @@ async fn add_to_queue(State(st): St, AuthUser(u): AuthUser, Json(req): Json<AddR
     } else {
         return Err(ApiError::bad_request("Chybí skladba"));
     };
+    for t in &tracks {
+        allowed.check_track(t)?;
+    }
     let single = tracks.len() == 1;
     let s = st.settings();
     let mut to_add = Vec::new();
@@ -576,7 +624,7 @@ async fn put_settings(State(st): St, AuthUser(u): AuthUser, Json(mut s): Json<Se
         }
     }
     let folders_changed = s.local_folders != st.settings().local_folders;
-    let device_changed = s.audio_device != st.settings().audio_device;
+    let device_changed = s.output_devices() != st.settings().output_devices();
     let volume = s.volume;
     st.set_settings(s)?;
     st.player.send(PlayerCmd::SetVolume(volume));

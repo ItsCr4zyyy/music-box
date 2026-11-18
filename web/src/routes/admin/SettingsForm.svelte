@@ -97,6 +97,16 @@
 			</label>
 		</section>
 
+		<section class="card flex flex-col gap-4">
+			<div>
+				<h2 class="section-title">{t('rules.djSources')}</h2>
+				<p class="text-sm text-white/50">{t('rules.djSourcesHint')}</p>
+			</div>
+			<Toggle bind:checked={s.dj_sources.youtube} label={t('rules.djYoutube')} />
+			<Toggle bind:checked={s.dj_sources.links} label={t('rules.djLinks')} />
+			<Toggle bind:checked={s.dj_sources.local} label={t('rules.djLocal')} />
+		</section>
+
 		<!-- Rádio -->
 		<section class="card flex flex-col gap-3">
 			<h2 class="section-title"><Radio class="size-5 text-pink" strokeWidth={2.5} /> {t('radio.title')}</h2>

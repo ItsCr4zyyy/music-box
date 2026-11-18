@@ -261,6 +261,18 @@ const cs = {
 	'system.audioRefresh': 'Načíst zařízení znovu',
 	'system.audioMissing': 'Zvolené zařízení teď není připojené – hraje výchozí.',
 	'system.audioSaved': 'Zvukový výstup změněn',
+	'rules.djSources': 'Co smí DJové přidávat',
+	'rules.djSourcesHint': 'Administrátor smí vždycky všechno.',
+	'rules.djYoutube': 'Hledání na YouTube Music',
+	'rules.djLinks': 'Odkazy z YouTube a Spotify',
+	'rules.djLocal': 'Lokální knihovna (hudba na disku)',
+	'add.youtubeOff': 'Hledání na YouTube je vypnuté – hledá se jen v knihovně.',
+	'add.localOff': 'Hledá se jen na YouTube Music.',
+	'add.linksOff': 'Odkazy teď přidávat nejde.',
+	'add.nothingAllowed': 'Administrátor teď přidávání písniček vypnul.',
+	'system.audioMulti': 'Zaškrtni jedno nebo víc zařízení. Víc zařízení = hraje se na všech najednou (hodí se do různých místností; ve stejné místnosti může být slyšet malé zpoždění).',
+	'system.normalize': 'Vyrovnat hlasitost',
+	'system.normalizeHint': 'Každá písnička se jednou změří a zesílí nebo ztlumí, aby žádná nebyla potichu ani moc nahlas. Rádio se nemění.',
 	'system.data': 'Data:'
 } as const;
 

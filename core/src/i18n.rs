@@ -48,6 +48,9 @@ const EXACT: &[(&str, &str)] = &[
     ("Nemáš oprávnění", "You don't have permission"),
     ("Neplatná adresa rádia", "Invalid radio URL"),
     ("Přezdívka nesmí být prázdná", "The nickname can't be empty"),
+    ("Lokální knihovnu teď DJové používat nesmí", "DJs can't use the local library right now"),
+    ("Písničky z YouTube teď DJové přidávat nesmí", "DJs can't add songs from YouTube right now"),
+    ("Odkazy teď DJové přidávat nesmí", "DJs can't add links right now"),
 ];
 
 /// (začátek česky, začátek anglicky) – zbytek textu (čísla, názvy) zůstane.

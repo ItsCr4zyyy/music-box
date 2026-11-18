@@ -135,6 +135,8 @@ impl Db {
             // 1 = metadata nastavená ručně (identifikace) – skenování je nepřepíše.
             "ALTER TABLE tracks ADD COLUMN locked INTEGER NOT NULL DEFAULT 0",
             "ALTER TABLE users ADD COLUMN avatar TEXT",
+            // Zesílení pro normalizaci hlasitosti (dB), NULL = ještě nezměřeno.
+            "ALTER TABLE tracks ADD COLUMN gain_db REAL",
         ] {
             let _ = conn.execute(sql, []);
         }
@@ -334,6 +336,18 @@ impl Db {
             )
             .optional()
         })
+    }
+
+    pub fn track_gain(&self, track_id: i64) -> rusqlite::Result<Option<f32>> {
+        self.with(|c| {
+            c.query_row("SELECT gain_db FROM tracks WHERE id = ?1", [track_id], |r| r.get::<_, Option<f64>>(0))
+                .optional()
+                .map(|g| g.flatten().map(|v| v as f32))
+        })
+    }
+
+    pub fn set_track_gain(&self, track_id: i64, gain_db: f32) -> rusqlite::Result<()> {
+        self.with(|c| c.execute("UPDATE tracks SET gain_db = ?1 WHERE id = ?2", params![gain_db as f64, track_id]).map(|_| ()))
     }
 
     pub fn set_track_file(&self, track_id: i64, path: Option<&str>) -> rusqlite::Result<()> {
